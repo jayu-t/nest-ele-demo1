@@ -1,15 +1,12 @@
-/* eslint-disable @typescript-eslint/no-var-requires */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import type {
   CustomTransportStrategy,
   MessageHandler,
 } from '@nestjs/microservices';
 import { Server } from '@nestjs/microservices';
 import { isObservable, lastValueFrom } from 'rxjs';
-import './nest.hacker';
 import { Logger } from '@nestjs/common';
-import { ChannelMaps } from './transports';
-import { linkPathAndChannel } from './utils';
-import type { IpcContext, IpcOptions } from './interface';
+import { ipcMain } from 'electron';
 
 export class ElectronIpcTransport
   extends Server
@@ -24,27 +21,19 @@ export class ElectronIpcTransport
 
   listen(callback: () => void): any {
     console.log('listen');
+    console.log(configuredChannels);
 
-    // if (isElectron) {
-    const { ipcMain } = require('electron');
-    ChannelMaps.forEach(({ target, channel, opts }, channelId) => {
-      const path = Reflect.getMetadata('path', target.constructor);
-      const channelNames = linkPathAndChannel(channel, path);
-
+    configuredChannels.forEach(({ target, channel, opts }, channelId) => {
       const handler = this.getHandlers().get(channelId);
       if (!handler) {
-        const errMsg = `No handler for message channel "${channelNames[0]}"`;
+        const errMsg = `No handler for message channel "${channel}"`;
         this.logger.error(errMsg);
         throw new Error(errMsg);
       }
-
-      for (const ch of channelNames) {
-        if (handler.isEventHandler)
-          ipcMain.on(ch, this.applyHandler(handler, ch, opts));
-        else ipcMain.handle(ch, this.applyHandler(handler, ch, opts));
-      }
+      if (handler.isEventHandler)
+        ipcMain.on(channel, this.applyHandler(handler, channel, opts));
+      else ipcMain.handle(channel, this.applyHandler(handler, channel, opts));
     });
-    // }
 
     callback();
   }
@@ -52,17 +41,10 @@ export class ElectronIpcTransport
   private applyHandler(
     handler: MessageHandler,
     channel: string,
-    opts: IpcOptions = {},
+    opts: any = {},
   ) {
     return async (...args) => {
       try {
-        const { noLog } = opts;
-        if (!noLog) {
-          if (!handler.isEventHandler)
-            this.logger.log(`[IPC] Process message ${channel}`);
-          else this.logger.log(`[IPC] Process event ${channel}`);
-        }
-
         const [ipcMainEventObject, ...payload] = args;
 
         const data =
@@ -71,7 +53,7 @@ export class ElectronIpcTransport
             : payload.length === 1
             ? payload[0]
             : payload;
-        const ctx: IpcContext = { ipcEvt: ipcMainEventObject };
+        const ctx: any = { ipcEvt: ipcMainEventObject };
 
         const res = await handler(data, ctx);
         return isObservable(res) ? await lastValueFrom(res) : res;
@@ -82,4 +64,13 @@ export class ElectronIpcTransport
   }
 
   close(): any {}
+}
+
+export const configuredChannels = new Map<string, ChannelConfig>();
+
+interface ChannelConfig {
+  target: object;
+  key: string | symbol;
+  channel: string;
+  opts?: any;
 }

@@ -3,12 +3,9 @@ import { AppModule } from './app.module';
 import { app, BrowserWindow } from 'electron';
 import * as path from 'path';
 import { MicroserviceOptions } from '@nestjs/microservices';
-import { ElectronIpcTransport } from './microservices';
+import { ElectronIpcTransport } from './ipc-microservices/ipc.transport';
 
 function createWindow() {
-  console.log(path);
-  console.log(BrowserWindow);
-
   const win = new BrowserWindow({
     width: 800,
     height: 600,

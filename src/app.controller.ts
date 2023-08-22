@@ -1,25 +1,29 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller } from '@nestjs/common';
 import { AppService } from './app.service';
-import { Payload } from '@nestjs/microservices';
-import { IpcOn } from './microservices';
+import { ElectronIpcOn } from './ipc-microservices/ipc.decorator';
 
 @Controller()
 export class AppController {
   constructor(private readonly appService: AppService) {}
 
-  @Get()
-  getHello(): string {
-    return this.appService.getHello();
-  }
-
-  // @MessagePattern('echo')
-  // echo(@Payload() data: object) {
-  //   return data;
-  // }
-
-  @IpcOn('hello')
-  echo(@Payload() data: object) {
-    console.log('echo');
+  @ElectronIpcOn('hello')
+  hello(data: { name: string; age: number }) {
+    console.log('hello : ');
+    console.log(data);
     return data;
   }
+
+  @ElectronIpcOn('test')
+  test(data: string) {
+    console.log('test : ');
+    console.log(data);
+    return data;
+  }
+
+  // @ElectronIpcOn('test')
+  // test1(data: string) {
+  //   console.log('test : ');
+  //   console.log(data);
+  //   return data;
+  // }
 }
