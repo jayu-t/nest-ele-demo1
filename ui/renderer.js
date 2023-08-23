@@ -7,5 +7,5 @@ document.getElementById('hello').addEventListener('click', () => {
 
 document.getElementById('test').addEventListener('click', () => {
   console.log('sending test');
-  window.ipc.send('test', 'this is test message');
+  window.ipc.invoke('test', 'this is test message');
 });
